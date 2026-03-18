@@ -10,9 +10,17 @@
       <view class="meta-chip">🎬 {{ formatGenres(movie.genres) }}</view>
     </view>
 
-    <view class="action-row" v-if="currentUser">
-      <button class="action-btn like" @click="submitBehavior('like', 2.5)">点赞</button>
-      <button class="action-btn favorite" @click="submitBehavior('favorite', 4)">收藏</button>
+    <view class="action-card" v-if="currentUser">
+      <view class="action-title">互动操作</view>
+      <view class="action-subtitle">记录你的喜好后，推荐结果会更贴近你的口味。</view>
+      <view class="action-row">
+        <button class="action-btn" :class="behaviorState.liked ? 'like active' : 'like'" @click="toggleBehavior('like', 2.5)">
+          {{ behaviorState.liked ? '取消点赞' : '点赞' }}
+        </button>
+        <button class="action-btn" :class="behaviorState.favorited ? 'favorite active' : 'favorite'" @click="toggleBehavior('favorite', 4)">
+          {{ behaviorState.favorited ? '取消收藏' : '收藏' }}
+        </button>
+      </view>
     </view>
 
     <view v-else class="login-tip">登录后可记录浏览、点赞与收藏，用于提升推荐效果。</view>
@@ -31,7 +39,11 @@ export default {
     return {
       movie: {},
       currentUser: null,
-      imgUrl: 'https://image.tmdb.org/t/p/w500'
+      imgUrl: 'https://image.tmdb.org/t/p/w500',
+      behaviorState: {
+        liked: false,
+        favorited: false
+      }
     }
   },
   onLoad(options) {
@@ -44,6 +56,26 @@ export default {
       if (res.code === 200) {
         this.movie = res.data || {}
         this.recordView()
+        this.fetchBehaviorState()
+      }
+    },
+    async fetchBehaviorState() {
+      if (!this.currentUser || !this.movie.id) {
+        return
+      }
+
+      const res = await apiRequest('/api/behavior/status', {
+        data: {
+          username: this.currentUser.username,
+          movie_id: this.movie.id
+        }
+      })
+
+      if (res.code === 200 && res.data) {
+        this.behaviorState = {
+          liked: !!res.data.liked,
+          favorited: !!res.data.favorited
+        }
       }
     },
     async recordView() {
@@ -60,13 +92,13 @@ export default {
         }
       })
     },
-    async submitBehavior(type, score) {
+    async toggleBehavior(type, score) {
       if (!this.currentUser) {
         uni.showToast({ title: '请先登录', icon: 'none' })
         return
       }
 
-      const res = await apiRequest('/api/behavior', {
+      const res = await apiRequest('/api/behavior/toggle', {
         method: 'POST',
         data: {
           username: this.currentUser.username,
@@ -75,6 +107,14 @@ export default {
           score
         }
       })
+
+      if (res.code === 200 && res.data) {
+        if (type === 'like') {
+          this.behaviorState.liked = !!res.data.active
+        } else if (type === 'favorite') {
+          this.behaviorState.favorited = !!res.data.active
+        }
+      }
 
       uni.showToast({ title: res.message || (res.code === 200 ? '操作成功' : '操作失败'), icon: res.code === 200 ? 'success' : 'none' })
     },
@@ -136,6 +176,26 @@ export default {
   font-size: 24rpx;
 }
 
+.action-card {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  background: #ffffff;
+  box-shadow: 0 14rpx 36rpx rgba(15, 23, 42, 0.06);
+}
+
+.action-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.action-subtitle {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
 .action-row {
   display: flex;
   margin-top: 24rpx;
@@ -146,6 +206,8 @@ export default {
   border-radius: 18rpx;
   margin-right: 18rpx;
   font-size: 28rpx;
+  font-weight: 600;
+  border: 2rpx solid transparent;
 }
 
 .action-btn:last-child {
@@ -160,6 +222,18 @@ export default {
 .favorite {
   background: #fff5f0;
   color: #ff6b3d;
+}
+
+.like.active {
+  background: #1f6fff;
+  color: #fff;
+  border-color: #1f6fff;
+}
+
+.favorite.active {
+  background: #ff6b3d;
+  color: #fff;
+  border-color: #ff6b3d;
 }
 
 .login-tip {

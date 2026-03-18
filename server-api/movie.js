@@ -633,6 +633,169 @@ app.get('/api/movie', async (req, res) => {
   }
 })
 
+app.get('/api/behavior/status', async (req, res) => {
+  const username = req.query.username
+  const movieId = req.query.movie_id
+
+  if (!username || !movieId) {
+    res.send({ code: 400, message: '缺少必要参数' })
+    return
+  }
+
+  try {
+    const activeResult = await ensureActiveUser(username)
+    if (!activeResult.ok) {
+      res.send({ code: activeResult.code, message: activeResult.message })
+      return
+    }
+
+    const rows = await query(
+      `
+        SELECT behavior_type
+        FROM user_movie_behaviors
+        WHERE username = ? AND movie_id = ? AND behavior_type IN ('like', 'favorite')
+        GROUP BY behavior_type
+      `,
+      [username, movieId]
+    )
+
+    const behaviorTypes = new Set(rows.map((item) => item.behavior_type))
+    res.send({
+      code: 200,
+      data: {
+        liked: behaviorTypes.has('like'),
+        favorited: behaviorTypes.has('favorite')
+      }
+    })
+  } catch (error) {
+    sendError(res, error, '获取行为状态失败')
+  }
+})
+
+app.post('/api/behavior/toggle', async (req, res) => {
+  const { username, movie_id: movieId, behavior_type: behaviorType, score } = req.body || {}
+
+  if (!username || !movieId || !behaviorType) {
+    res.send({ code: 400, message: '缺少必要参数' })
+    return
+  }
+
+  const allowedTypes = new Set(['like', 'favorite'])
+  if (!allowedTypes.has(behaviorType)) {
+    res.send({ code: 400, message: 'behavior_type不合法' })
+    return
+  }
+
+  try {
+    const activeResult = await ensureActiveUser(username)
+    if (!activeResult.ok) {
+      res.send({ code: activeResult.code, message: activeResult.message })
+      return
+    }
+
+    const existedRows = await query(
+      'SELECT id FROM user_movie_behaviors WHERE username = ? AND movie_id = ? AND behavior_type = ? LIMIT 1',
+      [username, movieId, behaviorType]
+    )
+
+    if (existedRows.length) {
+      await query(
+        'DELETE FROM user_movie_behaviors WHERE username = ? AND movie_id = ? AND behavior_type = ?',
+        [username, movieId, behaviorType]
+      )
+      res.send({
+        code: 200,
+        message: behaviorType === 'like' ? '已取消点赞' : '已取消收藏',
+        data: { active: false }
+      })
+      return
+    }
+
+    const safeScore = Number(score) > 0 ? Number(score) : 1
+    await query(
+      `
+        INSERT INTO user_movie_behaviors (username, movie_id, behavior_type, score, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      [username, movieId, behaviorType, safeScore, Date.now()]
+    )
+
+    res.send({
+      code: 200,
+      message: behaviorType === 'like' ? '点赞成功' : '收藏成功',
+      data: { active: true }
+    })
+  } catch (error) {
+    sendError(res, error, '更新行为状态失败')
+  }
+})
+
+app.get('/api/user/collections', async (req, res) => {
+  const username = req.query.username
+
+  if (!username) {
+    res.send({ code: 400, message: '缺少用户名' })
+    return
+  }
+
+  try {
+    const activeResult = await ensureActiveUser(username)
+    if (!activeResult.ok) {
+      res.send({ code: activeResult.code, message: activeResult.message })
+      return
+    }
+
+    const [likedRows, favoriteRows] = await Promise.all([
+      query(
+        `
+          SELECT
+            m.id,
+            m.chinese_name,
+            m.poster_path,
+            m.vote_average,
+            m.release_date,
+            m.genres,
+            MAX(umb.created_at) AS created_at
+          FROM user_movie_behaviors umb
+          INNER JOIN movies m ON m.id = umb.movie_id
+          WHERE umb.username = ? AND umb.behavior_type = 'like'
+          GROUP BY m.id, m.chinese_name, m.poster_path, m.vote_average, m.release_date, m.genres
+          ORDER BY created_at DESC
+        `,
+        [username]
+      ),
+      query(
+        `
+          SELECT
+            m.id,
+            m.chinese_name,
+            m.poster_path,
+            m.vote_average,
+            m.release_date,
+            m.genres,
+            MAX(umb.created_at) AS created_at
+          FROM user_movie_behaviors umb
+          INNER JOIN movies m ON m.id = umb.movie_id
+          WHERE umb.username = ? AND umb.behavior_type = 'favorite'
+          GROUP BY m.id, m.chinese_name, m.poster_path, m.vote_average, m.release_date, m.genres
+          ORDER BY created_at DESC
+        `,
+        [username]
+      )
+    ])
+
+    res.send({
+      code: 200,
+      data: {
+        liked: likedRows,
+        favorited: favoriteRows
+      }
+    })
+  } catch (error) {
+    sendError(res, error, '获取个人行为列表失败')
+  }
+})
+
 app.post('/api/behavior', async (req, res) => {
   const { username, movie_id: movieId, behavior_type: behaviorType, score } = req.body || {}
 
