@@ -1,27 +1,9 @@
 <template>
   <view class="auth-page">
     <view class="hero">
-      <view class="hero-title">欢迎回来，准备挑部电影吧</view>
-      <view class="hero-subtitle">登录后可获得个性推荐，注册成功后再填写偏好问卷。</view>
-
-      <view class="buddy-stage" aria-hidden="true">
-        <view
-          v-for="buddy in buddies"
-          :key="buddy.id"
-          class="buddy"
-          :class="buddy.className"
-          :style="{ background: buddy.bg }"
-        >
-          <view class="eyes-row">
-            <view v-for="eyeIndex in 2" :key="eyeIndex" class="eye">
-              <view class="pupil"></view>
-            </view>
-          </view>
-          <view v-if="buddy.mouth === 'line'" class="mouth-line"></view>
-          <view v-else-if="buddy.mouth === 'smile'" class="mouth-smile"></view>
-          <view v-else-if="buddy.mouth === 'dot'" class="mouth-dot"></view>
-        </view>
-      </view>
+      <view class="hero-badge">Movie Suggestion</view>
+      <view class="hero-title">登录后继续你的观影旅程</view>
+      <view class="hero-subtitle">注册后即可完善偏好设置，获得更贴合口味的电影推荐。</view>
     </view>
 
     <view class="panel">
@@ -31,17 +13,20 @@
       </view>
 
       <view v-if="mode === 'login'" class="form-body">
+        <view class="form-title">欢迎回来</view>
+        <view class="form-tip">输入账号信息，继续查看推荐、点赞与收藏内容。</view>
         <input v-model="loginForm.username" class="input" type="text" placeholder="用户名" :cursor-spacing="24" />
         <input v-model="loginForm.password" class="input" type="text" password placeholder="密码" :cursor-spacing="24" />
         <button class="submit" @click="submitLogin">立即登录</button>
       </view>
 
       <view v-else class="form-body">
+        <view class="form-title">创建新账号</view>
+        <view class="form-tip">注册完成后会进入偏好设置页，帮助系统生成更准确的推荐。</view>
         <input v-model="registerForm.nickname" class="input" type="text" placeholder="昵称（选填）" :cursor-spacing="24" />
         <input v-model="registerForm.username" class="input" type="text" placeholder="用户名" :cursor-spacing="24" />
         <input v-model="registerForm.password" class="input" type="text" password placeholder="密码（至少6位）" :cursor-spacing="24" />
         <input v-model="registerForm.confirmPassword" class="input" type="text" password placeholder="确认密码" :cursor-spacing="24" />
-        <view class="register-tip">注册完成后会进入偏好设置页，帮助系统生成更准确的推荐。</view>
         <button class="submit" @click="submitRegister">创建账号</button>
       </view>
     </view>
@@ -55,24 +40,6 @@ export default {
   data() {
     return {
       mode: 'login',
-      buddies: [
-        { id: 1, className: 'buddy-back-left', bg: 'linear-gradient(180deg, #6a59ff, #5544e7)', mouth: 'dot' },
-        { id: 2, className: 'buddy-back-mid', bg: 'linear-gradient(180deg, #2f3040, #232431)', mouth: 'dot' },
-        { id: 3, className: 'buddy-front-left', bg: 'linear-gradient(180deg, #ffa26f, #f18d61)', mouth: 'smile' },
-        { id: 4, className: 'buddy-front-right', bg: 'linear-gradient(180deg, #e8dc5e, #dfcf4f)', mouth: 'line' }
-      ],
-      genreOptions: ['动作', '喜剧', '爱情', '科幻', '悬疑', '动画', '犯罪', '冒险', '剧情', '惊悚'],
-      eraOptions: [
-        { value: 'classic', label: '经典老片', desc: '更喜欢 1999 年及以前的电影气质' },
-        { value: 'millennial', label: '千禧佳作', desc: '偏爱 2000 - 2014 年的成熟商业片' },
-        { value: 'recent', label: '近年热门', desc: '更关注 2015 年之后的新片' },
-        { value: 'all', label: '都可以', desc: '时间不是问题，更关注内容本身' }
-      ],
-      styleOptions: [
-        { value: 'quality', label: '高口碑优先', desc: '尽量把评分高的作品排在前面' },
-        { value: 'balanced', label: '口碑热度均衡', desc: '兼顾大众热度与评分质量' },
-        { value: 'trending', label: '热门趋势优先', desc: '更偏向最近热度更高的电影' }
-      ],
       loginForm: {
         username: '',
         password: ''
@@ -146,149 +113,50 @@ export default {
 <style>
 .auth-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #616d84 0%, #7c879d 38%, #f5f6fb 38%, #f5f6fb 100%);
+  padding: 44rpx 28rpx;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #eef3ff 0%, #f8faff 45%, #ffffff 100%);
 }
 
 .hero {
-  position: relative;
-  z-index: 1;
-  padding: 42rpx 30rpx 20rpx;
+  padding: 24rpx 8rpx 36rpx;
 }
 
-.hero-title {
-  color: #fff;
-  font-size: 42rpx;
+.hero-badge {
+  display: inline-flex;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: rgba(31, 111, 255, 0.08);
+  color: #1f6fff;
+  font-size: 22rpx;
   font-weight: 700;
 }
 
+.hero-title {
+  margin-top: 24rpx;
+  color: #111827;
+  font-size: 46rpx;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
 .hero-subtitle {
-  margin-top: 10rpx;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 25rpx;
-  line-height: 1.5;
-}
-
-.buddy-stage {
-  pointer-events: none;
-  height: 430rpx;
-  margin-top: 30rpx;
-  border-radius: 34rpx;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03));
-  position: relative;
-  overflow: hidden;
-}
-
-.buddy {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 56rpx;
-  box-shadow: 0 14rpx 30rpx rgba(30, 36, 60, 0.2);
-}
-
-.buddy-back-left {
-  width: 180rpx;
-  height: 290rpx;
-  left: 170rpx;
-  bottom: 0;
-  border-radius: 26rpx 26rpx 0 0;
-}
-
-.buddy-back-mid {
-  width: 150rpx;
-  height: 236rpx;
-  left: 300rpx;
-  bottom: 0;
-  border-radius: 20rpx 20rpx 0 0;
-}
-
-.buddy-front-left {
-  width: 290rpx;
-  height: 200rpx;
-  left: 50rpx;
-  bottom: 0;
-  border-radius: 150rpx 150rpx 0 0;
-  z-index: 2;
-}
-
-.buddy-front-right {
-  width: 170rpx;
-  height: 250rpx;
-  right: 54rpx;
-  bottom: 0;
-  border-radius: 88rpx 88rpx 0 0;
-  z-index: 2;
-}
-
-.eyes-row {
-  display: flex;
-}
-
-.eye {
-  width: 30rpx;
-  height: 30rpx;
-  margin: 0 16rpx;
-  border-radius: 50%;
-  background: #fff;
-  position: relative;
-  overflow: hidden;
-}
-
-.pupil {
-  width: 14rpx;
-  height: 14rpx;
-  border-radius: 50%;
-  background: #20212a;
-  position: absolute;
-  left: 8rpx;
-  top: 8rpx;
-}
-
-.mouth-line,
-.mouth-dot,
-.mouth-smile {
-  margin-top: 28rpx;
-}
-
-.mouth-line {
-  width: 48rpx;
-  height: 8rpx;
-  border-radius: 999rpx;
-  background: rgba(35, 36, 49, 0.85);
-}
-
-.mouth-dot {
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  background: rgba(35, 36, 49, 0.85);
-}
-
-.mouth-smile {
-  width: 54rpx;
-  height: 28rpx;
-  border: 6rpx solid rgba(35, 36, 49, 0.85);
-  border-top: 0;
-  border-left-color: transparent;
-  border-right-color: transparent;
-  border-bottom-left-radius: 40rpx;
-  border-bottom-right-radius: 40rpx;
+  margin-top: 14rpx;
+  color: #667085;
+  font-size: 26rpx;
+  line-height: 1.6;
 }
 
 .panel {
-  position: relative;
-  z-index: 20;
-  margin: -30rpx 24rpx 30rpx;
-  padding: 28rpx;
+  padding: 30rpx;
   border-radius: 30rpx;
   background: #fff;
-  box-shadow: 0 16rpx 46rpx rgba(55, 68, 100, 0.12);
+  box-shadow: 0 18rpx 52rpx rgba(15, 23, 42, 0.08);
 }
 
 .tabs {
   display: flex;
-  background: #f1f3fb;
+  background: #f3f6fb;
   border-radius: 20rpx;
   padding: 8rpx;
 }
@@ -310,7 +178,21 @@ export default {
 }
 
 .form-body {
-  margin-top: 26rpx;
+  margin-top: 30rpx;
+}
+
+.form-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.form-tip {
+  margin-top: 10rpx;
+  margin-bottom: 22rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.6;
 }
 
 .input {
@@ -319,28 +201,18 @@ export default {
   box-sizing: border-box;
   background: #f5f7fb;
   border-radius: 18rpx;
-  padding: 24rpx;
-  margin-bottom: 18rpx;
+  padding: 0 24rpx;
   font-size: 28rpx;
-  position: relative;
-  z-index: 30;
-}
-
-.register-tip {
-  margin-bottom: 18rpx;
-  padding: 22rpx;
-  border-radius: 18rpx;
-  background: #f8f9ff;
-  color: #667085;
-  font-size: 24rpx;
-  line-height: 1.5;
+  color: #111827;
+  margin-top: 18rpx;
 }
 
 .submit {
-  margin-top: 12rpx;
+  margin-top: 28rpx;
   border-radius: 18rpx;
-  background: linear-gradient(135deg, #1f6fff, #4f8bff);
+  background: linear-gradient(135deg, #1f6fff, #4d8dff);
   color: #fff;
   font-size: 30rpx;
+  font-weight: 600;
 }
 </style>
