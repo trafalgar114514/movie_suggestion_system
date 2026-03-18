@@ -71,6 +71,18 @@ export default {
         { id: 3, className: 'buddy-front-left', bg: 'linear-gradient(180deg, #ffa26f, #f18d61)', mouth: 'smile' },
         { id: 4, className: 'buddy-front-right', bg: 'linear-gradient(180deg, #e8dc5e, #dfcf4f)', mouth: 'line' }
       ],
+      genreOptions: ['动作', '喜剧', '爱情', '科幻', '悬疑', '动画', '犯罪', '冒险', '剧情', '惊悚'],
+      eraOptions: [
+        { value: 'classic', label: '经典老片', desc: '更喜欢 1999 年及以前的电影气质' },
+        { value: 'millennial', label: '千禧佳作', desc: '偏爱 2000 - 2014 年的成熟商业片' },
+        { value: 'recent', label: '近年热门', desc: '更关注 2015 年之后的新片' },
+        { value: 'all', label: '都可以', desc: '时间不是问题，更关注内容本身' }
+      ],
+      styleOptions: [
+        { value: 'quality', label: '高口碑优先', desc: '尽量把评分高的作品排在前面' },
+        { value: 'balanced', label: '口碑热度均衡', desc: '兼顾大众热度与评分质量' },
+        { value: 'trending', label: '热门趋势优先', desc: '更偏向最近热度更高的电影' }
+      ],
       loginForm: {
         username: '',
         password: ''
@@ -79,7 +91,12 @@ export default {
         nickname: '',
         username: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        preferences: {
+          favoriteGenres: ['剧情'],
+          preferredEra: 'all',
+          discoveryStyle: 'balanced'
+        }
       },
       eyeCenters: [],
       pupilStyles: Array.from({ length: 8 }, () => ({ transform: CENTER_TRANSFORM }))
@@ -147,6 +164,18 @@ export default {
       this.updatePupils(event.clientX, event.clientY)
       // #endif
     },
+    toggleGenre(genre) {
+      const selected = this.registerForm.preferences.favoriteGenres
+      if (selected.includes(genre)) {
+        this.registerForm.preferences.favoriteGenres = selected.filter((item) => item !== genre)
+        return
+      }
+      if (selected.length >= 5) {
+        uni.showToast({ title: '最多选择 5 个类型', icon: 'none' })
+        return
+      }
+      this.registerForm.preferences.favoriteGenres = [...selected, genre]
+    },
     async submitLogin() {
       if (!this.loginForm.username || !this.loginForm.password) {
         uni.showToast({ title: '请完整填写登录信息', icon: 'none' })
@@ -175,6 +204,11 @@ export default {
 
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
         uni.showToast({ title: '两次输入的密码不一致', icon: 'none' })
+        return
+      }
+
+      if (!this.registerForm.preferences.favoriteGenres.length) {
+        uni.showToast({ title: '请至少选择一个喜欢的类型', icon: 'none' })
         return
       }
 
