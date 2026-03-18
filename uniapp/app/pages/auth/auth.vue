@@ -1,20 +1,12 @@
 <template>
   <view class="auth-page">
-    <view
-      class="hero"
-      @touchstart="handleTouch"
-      @touchmove="handleTouch"
-      @touchend="handleRelease"
-      @touchcancel="handleRelease"
-      @mousemove="handleMouse"
-      @mouseleave="handleRelease"
-    >
+    <view class="hero">
       <view class="hero-title">欢迎回来，准备挑部电影吧</view>
       <view class="hero-subtitle">登录后可获得个性推荐，注册成功后再填写偏好问卷。</view>
 
-      <view class="buddy-stage">
+      <view class="buddy-stage" aria-hidden="true">
         <view
-          v-for="(buddy, index) in buddies"
+          v-for="buddy in buddies"
           :key="buddy.id"
           class="buddy"
           :class="buddy.className"
@@ -22,7 +14,7 @@
         >
           <view class="eyes-row">
             <view v-for="eyeIndex in 2" :key="eyeIndex" class="eye">
-              <view class="pupil" :style="pupilStyles[index * 2 + eyeIndex - 1]"></view>
+              <view class="pupil"></view>
             </view>
           </view>
           <view v-if="buddy.mouth === 'line'" class="mouth-line"></view>
@@ -39,16 +31,16 @@
       </view>
 
       <view v-if="mode === 'login'" class="form-body">
-        <input v-model="loginForm.username" class="input" placeholder="用户名" />
-        <input v-model="loginForm.password" class="input" password placeholder="密码" />
+        <input v-model="loginForm.username" class="input" type="text" placeholder="用户名" :cursor-spacing="24" />
+        <input v-model="loginForm.password" class="input" type="text" password placeholder="密码" :cursor-spacing="24" />
         <button class="submit" @click="submitLogin">立即登录</button>
       </view>
 
       <view v-else class="form-body">
-        <input v-model="registerForm.nickname" class="input" placeholder="昵称（选填）" />
-        <input v-model="registerForm.username" class="input" placeholder="用户名" />
-        <input v-model="registerForm.password" class="input" password placeholder="密码（至少6位）" />
-        <input v-model="registerForm.confirmPassword" class="input" password placeholder="确认密码" />
+        <input v-model="registerForm.nickname" class="input" type="text" placeholder="昵称（选填）" :cursor-spacing="24" />
+        <input v-model="registerForm.username" class="input" type="text" placeholder="用户名" :cursor-spacing="24" />
+        <input v-model="registerForm.password" class="input" type="text" password placeholder="密码（至少6位）" :cursor-spacing="24" />
+        <input v-model="registerForm.confirmPassword" class="input" type="text" password placeholder="确认密码" :cursor-spacing="24" />
         <view class="register-tip">注册完成后会进入偏好设置页，帮助系统生成更准确的推荐。</view>
         <button class="submit" @click="submitRegister">创建账号</button>
       </view>
@@ -58,8 +50,6 @@
 
 <script>
 import { getLastRegisteredUser, loginUser, registerUser, saveLastRegisteredUser } from '@/utils/auth'
-
-const CENTER_TRANSFORM = 'translate(0px, 0px)'
 
 export default {
   data() {
@@ -91,15 +81,8 @@ export default {
         nickname: '',
         username: '',
         password: '',
-        confirmPassword: '',
-        preferences: {
-          favoriteGenres: ['剧情'],
-          preferredEra: 'all',
-          discoveryStyle: 'balanced'
-        }
-      },
-      eyeCenters: [],
-      pupilStyles: Array.from({ length: 8 }, () => ({ transform: CENTER_TRANSFORM }))
+        confirmPassword: ''
+      }
     }
   },
   onLoad(options) {
@@ -114,68 +97,7 @@ export default {
       this.loginForm.username = lastRegisteredUser
     }
   },
-  mounted() {
-    this.$nextTick(() => {
-      this.captureEyeCenters()
-    })
-  },
   methods: {
-    captureEyeCenters() {
-      const query = uni.createSelectorQuery().in(this)
-      query.selectAll('.eye').boundingClientRect()
-      query.exec((res) => {
-        const list = res[0] || []
-        this.eyeCenters = list.map((item) => ({
-          x: item.left + item.width / 2,
-          y: item.top + item.height / 2
-        }))
-      })
-    },
-    resetPupils() {
-      this.pupilStyles = this.pupilStyles.map(() => ({ transform: CENTER_TRANSFORM }))
-    },
-    updatePupils(clientX, clientY) {
-      if (!this.eyeCenters.length) {
-        return
-      }
-
-      const max = 7
-      this.pupilStyles = this.eyeCenters.map((eye) => {
-        const dx = clientX - eye.x
-        const dy = clientY - eye.y
-        const distance = Math.sqrt(dx * dx + dy * dy) || 1
-        const ratio = Math.min(max, distance) / distance
-        return {
-          transform: `translate(${(dx * ratio).toFixed(2)}px, ${(dy * ratio).toFixed(2)}px)`
-        }
-      })
-    },
-    handleTouch(event) {
-      const touch = event.touches && event.touches[0]
-      if (touch) {
-        this.updatePupils(touch.clientX, touch.clientY)
-      }
-    },
-    handleRelease() {
-      this.resetPupils()
-    },
-    handleMouse(event) {
-      // #ifdef H5
-      this.updatePupils(event.clientX, event.clientY)
-      // #endif
-    },
-    toggleGenre(genre) {
-      const selected = this.registerForm.preferences.favoriteGenres
-      if (selected.includes(genre)) {
-        this.registerForm.preferences.favoriteGenres = selected.filter((item) => item !== genre)
-        return
-      }
-      if (selected.length >= 5) {
-        uni.showToast({ title: '最多选择 5 个类型', icon: 'none' })
-        return
-      }
-      this.registerForm.preferences.favoriteGenres = [...selected, genre]
-    },
     async submitLogin() {
       if (!this.loginForm.username || !this.loginForm.password) {
         uni.showToast({ title: '请完整填写登录信息', icon: 'none' })
@@ -234,6 +156,8 @@ export default {
 }
 
 .hero {
+  position: relative;
+  z-index: 1;
   padding: 42rpx 30rpx 20rpx;
 }
 
@@ -251,6 +175,7 @@ export default {
 }
 
 .buddy-stage {
+  pointer-events: none;
   height: 430rpx;
   margin-top: 30rpx;
   border-radius: 34rpx;
@@ -324,7 +249,6 @@ export default {
   position: absolute;
   left: 8rpx;
   top: 8rpx;
-  transition: transform 0.08s linear;
 }
 
 .mouth-line,
@@ -359,6 +283,8 @@ export default {
 }
 
 .panel {
+  position: relative;
+  z-index: 20;
   margin: -30rpx 24rpx 30rpx;
   padding: 28rpx;
   border-radius: 30rpx;
@@ -395,12 +321,25 @@ export default {
 
 .input {
   width: 100%;
+  height: 96rpx;
   box-sizing: border-box;
   background: #f5f7fb;
   border-radius: 18rpx;
   padding: 24rpx;
   margin-bottom: 18rpx;
   font-size: 28rpx;
+  position: relative;
+  z-index: 30;
+}
+
+.register-tip {
+  margin-bottom: 18rpx;
+  padding: 22rpx;
+  border-radius: 18rpx;
+  background: #f8f9ff;
+  color: #667085;
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 
 .register-tip {
