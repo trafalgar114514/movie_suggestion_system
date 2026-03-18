@@ -1,16 +1,16 @@
 <template>
-  <view
-    class="auth-page"
-    @touchstart="handleTouch"
-    @touchmove="handleTouch"
-    @touchend="handleRelease"
-    @touchcancel="handleRelease"
-    @mousemove="handleMouse"
-    @mouseleave="handleRelease"
-  >
-    <view class="hero">
+  <view class="auth-page">
+    <view
+      class="hero"
+      @touchstart="handleTouch"
+      @touchmove="handleTouch"
+      @touchend="handleRelease"
+      @touchcancel="handleRelease"
+      @mousemove="handleMouse"
+      @mouseleave="handleRelease"
+    >
       <view class="hero-title">欢迎回来，准备挑部电影吧</view>
-      <view class="hero-subtitle">登录后可获得个性推荐，管理员还能管理用户与算法</view>
+      <view class="hero-subtitle">登录后可获得个性推荐，注册成功后再填写偏好问卷。</view>
 
       <view class="buddy-stage">
         <view
@@ -49,55 +49,7 @@
         <input v-model="registerForm.username" class="input" placeholder="用户名" />
         <input v-model="registerForm.password" class="input" password placeholder="密码（至少6位）" />
         <input v-model="registerForm.confirmPassword" class="input" password placeholder="确认密码" />
-
-        <view class="question-card">
-          <view class="question-title">1. 你最喜欢哪些电影类型？</view>
-          <view class="question-tip">至少选择 1 项，最多建议 5 项</view>
-          <view class="chips">
-            <view
-              v-for="genre in genreOptions"
-              :key="genre"
-              class="chip"
-              :class="{ active: registerForm.preferences.favoriteGenres.includes(genre) }"
-              @click="toggleGenre(genre)"
-            >
-              {{ genre }}
-            </view>
-          </view>
-        </view>
-
-        <view class="question-card">
-          <view class="question-title">2. 你更偏爱哪个年代的电影？</view>
-          <view class="radio-list">
-            <view
-              v-for="item in eraOptions"
-              :key="item.value"
-              class="radio-item"
-              :class="{ active: registerForm.preferences.preferredEra === item.value }"
-              @click="registerForm.preferences.preferredEra = item.value"
-            >
-              <view class="radio-title">{{ item.label }}</view>
-              <view class="radio-desc">{{ item.desc }}</view>
-            </view>
-          </view>
-        </view>
-
-        <view class="question-card">
-          <view class="question-title">3. 你更想看到哪类推荐结果？</view>
-          <view class="radio-list">
-            <view
-              v-for="item in styleOptions"
-              :key="item.value"
-              class="radio-item"
-              :class="{ active: registerForm.preferences.discoveryStyle === item.value }"
-              @click="registerForm.preferences.discoveryStyle = item.value"
-            >
-              <view class="radio-title">{{ item.label }}</view>
-              <view class="radio-desc">{{ item.desc }}</view>
-            </view>
-          </view>
-        </view>
-
+        <view class="register-tip">注册完成后会进入偏好设置页，帮助系统生成更准确的推荐。</view>
         <button class="submit" @click="submitRegister">创建账号</button>
       </view>
     </view>
@@ -105,7 +57,7 @@
 </template>
 
 <script>
-import { loginUser, registerUser } from '@/utils/auth'
+import { getLastRegisteredUser, loginUser, registerUser, saveLastRegisteredUser } from '@/utils/auth'
 
 const CENTER_TRANSFORM = 'translate(0px, 0px)'
 
@@ -148,6 +100,18 @@ export default {
       },
       eyeCenters: [],
       pupilStyles: Array.from({ length: 8 }, () => ({ transform: CENTER_TRANSFORM }))
+    }
+  },
+  onLoad(options) {
+    if (options && options.mode === 'login') {
+      this.mode = 'login'
+    }
+  },
+  onShow() {
+    const lastRegisteredUser = getLastRegisteredUser()
+    if (lastRegisteredUser) {
+      this.mode = 'login'
+      this.loginForm.username = lastRegisteredUser
     }
   },
   mounted() {
@@ -251,9 +215,12 @@ export default {
       const result = await registerUser(this.registerForm)
       uni.showToast({ title: result.message, icon: result.ok ? 'success' : 'none' })
       if (result.ok) {
-        this.mode = 'login'
-        this.loginForm.username = this.registerForm.username
-        this.loginForm.password = ''
+        saveLastRegisteredUser(this.registerForm.username)
+        setTimeout(() => {
+          uni.navigateTo({
+            url: `/pages/preferences/preferences?username=${this.registerForm.username}`
+          })
+        }, 350)
       }
     }
   }
@@ -436,75 +403,14 @@ export default {
   font-size: 28rpx;
 }
 
-.question-card {
-  background: #f8f9ff;
-  border-radius: 22rpx;
-  padding: 22rpx;
+.register-tip {
   margin-bottom: 18rpx;
-}
-
-.question-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.question-tip {
-  margin-top: 10rpx;
-  font-size: 23rpx;
-  color: #667085;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 16rpx;
-}
-
-.chip {
-  padding: 14rpx 22rpx;
-  border-radius: 999rpx;
-  background: #fff;
-  color: #4b5563;
-  margin-right: 16rpx;
-  margin-bottom: 16rpx;
-  border: 2rpx solid #e5e7eb;
-}
-
-.chip.active {
-  background: #1f6fff;
-  color: #fff;
-  border-color: #1f6fff;
-}
-
-.radio-list {
-  margin-top: 16rpx;
-}
-
-.radio-item {
-  padding: 20rpx;
+  padding: 22rpx;
   border-radius: 18rpx;
-  background: #fff;
-  border: 2rpx solid #e5e7eb;
-  margin-bottom: 14rpx;
-}
-
-.radio-item.active {
-  border-color: #1f6fff;
-  background: rgba(31, 111, 255, 0.06);
-}
-
-.radio-title {
-  font-size: 27rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-.radio-desc {
-  margin-top: 8rpx;
-  font-size: 23rpx;
+  background: #f8f9ff;
   color: #667085;
-  line-height: 1.4;
+  font-size: 24rpx;
+  line-height: 1.5;
 }
 
 .submit {

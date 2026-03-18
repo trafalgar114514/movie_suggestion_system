@@ -1,6 +1,7 @@
 import { apiRequest } from '@/utils/api'
 
 const CURRENT_USER_KEY = 'movie_current_user'
+const LAST_REGISTERED_USER_KEY = 'movie_last_registered_user'
 
 export async function registerUser(payload) {
   const result = await apiRequest('/api/auth/register', {
@@ -8,12 +9,23 @@ export async function registerUser(payload) {
     data: {
       username: payload.username,
       password: payload.password,
-      nickname: payload.nickname,
-      preferences: payload.preferences
+      nickname: payload.nickname
     }
   })
 
   return { ok: result.code === 200, message: result.message || '注册失败' }
+}
+
+export async function saveUserPreferences(payload) {
+  const result = await apiRequest('/api/auth/preferences', {
+    method: 'POST',
+    data: {
+      username: payload.username,
+      preferences: payload.preferences
+    }
+  })
+
+  return { ok: result.code === 200, message: result.message || '保存偏好失败' }
 }
 
 export async function loginUser(payload) {
@@ -47,6 +59,18 @@ export function getCurrentUser() {
 
 export function saveCurrentUser(user) {
   uni.setStorageSync(CURRENT_USER_KEY, user)
+}
+
+export function saveLastRegisteredUser(username) {
+  uni.setStorageSync(LAST_REGISTERED_USER_KEY, username)
+}
+
+export function getLastRegisteredUser() {
+  return uni.getStorageSync(LAST_REGISTERED_USER_KEY) || ''
+}
+
+export function clearLastRegisteredUser() {
+  uni.removeStorageSync(LAST_REGISTERED_USER_KEY)
 }
 
 export function logoutUser() {

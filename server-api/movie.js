@@ -473,7 +473,7 @@ app.get('/api/test', (req, res) => {
 })
 
 app.post('/api/auth/register', async (req, res) => {
-  const { username, password, nickname, preferences } = req.body || {}
+  const { username, password, nickname } = req.body || {}
 
   if (!username || !password) {
     res.send({ code: 400, message: '请填写用户名和密码' })
@@ -482,12 +482,6 @@ app.post('/api/auth/register', async (req, res) => {
 
   if (password.length < 6) {
     res.send({ code: 400, message: '密码至少6位' })
-    return
-  }
-
-  const normalizedPreferences = normalizePreferences(preferences || {})
-  if (!normalizedPreferences.favoriteGenres.length) {
-    res.send({ code: 400, message: '请至少选择一个喜欢的电影类型' })
     return
   }
 
@@ -508,15 +502,43 @@ app.post('/api/auth/register', async (req, res) => {
         INSERT INTO users (username, nickname, password_hash, password_salt, role, status, preference_profile, created_at)
         VALUES (?, ?, ?, ?, ?, 'active', ?, ?)
       `,
-      [username, nickname || username, passwordHash, salt, role, JSON.stringify(normalizedPreferences), Date.now()]
+      [username, nickname || username, passwordHash, salt, role, JSON.stringify(normalizePreferences({})), Date.now()]
     )
 
     res.send({
       code: 200,
-      message: role === 'admin' ? '注册成功，你已成为首位管理员，请登录' : '注册成功，请登录'
+      message: role === 'admin' ? '注册成功，你已成为首位管理员，请继续完善观影偏好' : '注册成功，请继续完善观影偏好'
     })
   } catch (error) {
     sendError(res, error, '注册失败，请稍后重试')
+  }
+})
+
+app.post('/api/auth/preferences', async (req, res) => {
+  const { username, preferences } = req.body || {}
+
+  if (!username) {
+    res.send({ code: 400, message: '缺少用户名' })
+    return
+  }
+
+  const normalizedPreferences = normalizePreferences(preferences || {})
+  if (!normalizedPreferences.favoriteGenres.length) {
+    res.send({ code: 400, message: '请至少选择一个喜欢的电影类型' })
+    return
+  }
+
+  try {
+    const activeResult = await ensureActiveUser(username)
+    if (!activeResult.ok) {
+      res.send({ code: activeResult.code, message: activeResult.message })
+      return
+    }
+
+    await query('UPDATE users SET preference_profile = ? WHERE username = ?', [JSON.stringify(normalizedPreferences), username])
+    res.send({ code: 200, message: '偏好设置已保存' })
+  } catch (error) {
+    sendError(res, error, '保存偏好失败')
   }
 })
 
